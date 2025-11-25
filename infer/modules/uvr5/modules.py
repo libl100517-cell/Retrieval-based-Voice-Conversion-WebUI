@@ -1,6 +1,7 @@
 import os
 import traceback
 import logging
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -37,22 +38,47 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                 is_half=config.is_half,
             )
         is_hp3 = "HP3" in model_name
-        if inp_root != "":
-            paths = [
-                os.path.join(inp_root, name)
-                for name in os.listdir(inp_root)
-                if os.path.isfile(os.path.join(inp_root, name))
-            ]
-        elif paths:
-            normalized_paths = []
-            for path in paths:
-                path_str = getattr(path, "name", path)
-                if not path_str:
+        normalized_paths = []
+
+        def _add_path(path_like):
+            if path_like is None:
+                return
+            if isinstance(path_like, dict):
+                path_candidate = path_like.get("name") or path_like.get("path")
+            else:
+                path_candidate = getattr(path_like, "name", None) or path_like
+            if not path_candidate:
+                return
+            cleaned = str(path_candidate).strip()
+            if not cleaned:
+                return
+            normalized_paths.append(cleaned)
+
+        if inp_root:
+            for root_line in inp_root.replace("\r", "\n").split("\n"):
+                cleaned_root = root_line.strip().strip('"').strip("'")
+                if not cleaned_root:
                     continue
-                normalized_paths.append(str(path_str))
-            paths = normalized_paths
-        else:
-            paths = []
+                root_path = Path(cleaned_root).expanduser()
+                if root_path.is_dir():
+                    for entry in sorted(root_path.iterdir()):
+                        if entry.is_file():
+                            normalized_paths.append(str(entry))
+                elif root_path.is_file():
+                    normalized_paths.append(str(root_path))
+        if paths:
+            for path in paths:
+                _add_path(path)
+        # Deduplicate while preserving order
+        seen = set()
+        deduped_paths = []
+        for path in normalized_paths:
+            if path in seen:
+                continue
+            seen.add(path)
+            deduped_paths.append(path)
+        paths = deduped_paths
+        logger.info("UVR batch collected %d file(s)", len(paths))
         for inp_path in paths:
             need_reformat = 1
             done = 0
