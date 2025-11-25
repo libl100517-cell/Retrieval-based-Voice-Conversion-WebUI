@@ -38,11 +38,16 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
             )
         is_hp3 = "HP3" in model_name
         if inp_root != "":
-            paths = [os.path.join(inp_root, name) for name in os.listdir(inp_root)]
-        else:
+            paths = [
+                os.path.join(inp_root, name)
+                for name in os.listdir(inp_root)
+                if os.path.isfile(os.path.join(inp_root, name))
+            ]
+        elif paths:
             paths = [path.name for path in paths]
-        for path in paths:
-            inp_path = os.path.join(inp_root, path)
+        else:
+            paths = []
+        for inp_path in paths:
             need_reformat = 1
             done = 0
             try:
