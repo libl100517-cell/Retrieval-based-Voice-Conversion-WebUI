@@ -44,7 +44,13 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                 if os.path.isfile(os.path.join(inp_root, name))
             ]
         elif paths:
-            paths = [path.name for path in paths]
+            normalized_paths = []
+            for path in paths:
+                path_str = getattr(path, "name", path)
+                if not path_str:
+                    continue
+                normalized_paths.append(str(path_str))
+            paths = normalized_paths
         else:
             paths = []
         for inp_path in paths:
@@ -61,7 +67,7 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                         inp_path, save_root_ins, save_root_vocal, format0, is_hp3=is_hp3
                     )
                     done = 1
-            except:
+            except Exception:
                 need_reformat = 1
                 traceback.print_exc()
             if need_reformat == 1:
@@ -81,7 +87,7 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                     )
                 infos.append("%s->Success" % (os.path.basename(inp_path)))
                 yield "\n".join(infos)
-            except:
+            except Exception:
                 try:
                     if done == 0:
                         pre_fun._path_audio_(
@@ -89,12 +95,12 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                         )
                     infos.append("%s->Success" % (os.path.basename(inp_path)))
                     yield "\n".join(infos)
-                except:
+                except Exception:
                     infos.append(
                         "%s->%s" % (os.path.basename(inp_path), traceback.format_exc())
                     )
                     yield "\n".join(infos)
-    except:
+    except Exception:
         infos.append(traceback.format_exc())
         yield "\n".join(infos)
     finally:
