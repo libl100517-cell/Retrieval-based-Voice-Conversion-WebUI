@@ -77,9 +77,23 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
                 continue
             seen.add(path)
             deduped_paths.append(path)
-        paths = deduped_paths
+
+        paths = []
+        for path in deduped_paths:
+            resolved = Path(path).expanduser()
+            if not resolved.exists():
+                logger.warning("UVR batch skipping missing input: %s", path)
+                infos.append("%s->Missing input" % Path(path).name)
+                continue
+            if resolved.is_dir():
+                logger.warning("UVR batch skipping directory input: %s", path)
+                infos.append("%s->Input is a directory" % Path(path).name)
+                continue
+            paths.append(str(resolved))
+
         logger.info("UVR batch collected %d file(s)", len(paths))
-        for inp_path in paths:
+        for idx, inp_path in enumerate(paths, start=1):
+            logger.info("UVR processing file %d/%d: %s", idx, len(paths), inp_path)
             need_reformat = 1
             done = 0
             try:
